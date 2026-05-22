@@ -611,11 +611,7 @@ const STAGES = [
   { key: &apos;store_recv&apos;,  label: &apos;Store Received&apos;,    role: &apos;store&apos;, actor: &apos;Store Management&apos;,                icon: &apos;📦&apos; },
 ];
 
-let USERS = [
-    { id: &apos;u1&apos;, username: &apos;admin&apos;,   password: &apos;admin@EDR2024&apos;,  name: &apos;EDR Administrator&apos;,  role: &apos;admin&apos; },
-    { id: &apos;u2&apos;, username: &apos;pm1&apos;,     password: &apos;pm@EDR2024&apos;,     name: &apos;Project Manager&apos;,     role: &apos;pm&apos; },
-    { id: &apos;u3&apos;, username: &apos;rm1&apos;,     password: &apos;rm@EDR2024&apos;,     name: &apos;Resource Manager&apos;,    role: &apos;rm&apos; }
-  ];
+let USERS = [];
 let REQUESTS = [];
 let NOTIFICATIONS = [];
 let currentUser = null;
@@ -704,11 +700,13 @@ function showSyncError(msg) {
   const err = document.getElementById(&apos;loginError&apos;);
   if (btn) btn.disabled = true;
   if (err) err.textContent = &apos;Loading...&apos;;
-  // Load from users1.json if available, otherwise use built-in default accounts
   fetch(&apos;users1.json?v=&apos; + Date.now())
     .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-    .then(data => { USERS = (Array.isArray(data) && data.length) ? data : USERS; if (btn) btn.disabled = false; if (err) err.textContent = &apos;&apos;; })
-    .catch(() => { if (btn) btn.disabled = false; if (err) err.textContent = &apos;&apos;; });
+    .then(data => { USERS = data; if (btn) btn.disabled = false; if (err) err.textContent = &apos;&apos;; })
+    .catch(() => {
+      USERS = [{ id: &apos;u1&apos;, username: &apos;admin&apos;, password: &apos;admin@EDR2024&apos;, name: &apos;EDR Administrator&apos;, role: &apos;admin&apos; }];
+      if (btn) btn.disabled = false; if (err) err.textContent = &apos;&apos;;
+    });
 })();
 
 function genId() { return &apos;PR-&apos; + Date.now().toString(36).toUpperCase().slice(-5) + &apos;-&apos; + Math.random().toString(36).slice(2,5).toUpperCase(); }
@@ -2386,11 +2384,7 @@ const ROLES = {
 };
 
 // Default users loaded from users.json
-let USERS = [
-    { id: &apos;u1&apos;, username: &apos;admin&apos;,   password: &apos;admin@EDR2024&apos;,  name: &apos;EDR Administrator&apos;,  role: &apos;admin&apos; },
-    { id: &apos;u2&apos;, username: &apos;pm1&apos;,     password: &apos;pm@EDR2024&apos;,     name: &apos;Project Manager&apos;,     role: &apos;pm&apos; },
-    { id: &apos;u3&apos;, username: &apos;rm1&apos;,     password: &apos;rm@EDR2024&apos;,     name: &apos;Resource Manager&apos;,    role: &apos;rm&apos; }
-  ];
+let USERS = [];
 let LETTERS = [];
 let NOTIFICATIONS = [];
 let currentUser = null;
@@ -2756,39 +2750,7 @@ function recentLettersTable() {
 }
 
 // ---- SUBMIT ----
-let _rmItems = [{ desc: '', specs: '', unit: '', qty: '' }];
-
-function addItemRow() {
-  _rmItems.push({ desc: '', specs: '', unit: '', qty: '' });
-  renderItemsTable();
-}
-
-function removeItemRow(i) {
-  if (_rmItems.length === 1) { _rmItems = [{ desc: '', specs: '', unit: '', qty: '' }]; }
-  else { _rmItems.splice(i, 1); }
-  renderItemsTable();
-}
-
-function syncItemRow(i, field, val) {
-  if (_rmItems[i]) _rmItems[i][field] = val;
-}
-
-function renderItemsTable() {
-  const tbody = document.getElementById('itemsTableBody');
-  if (!tbody) return;
-  tbody.innerHTML = _rmItems.map((row, i) => `
-    <tr>
-      <td style="padding:6px 10px;font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;">${i + 1}</td>
-      <td style="padding:5px 8px;"><input class="form-input" style="min-width:160px;padding:7px 10px;font-size:13px;" value="${row.desc}" oninput="syncItemRow(${i},'desc',this.value)" placeholder="Item description"></td>
-      <td style="padding:5px 8px;"><input class="form-input" style="min-width:130px;padding:7px 10px;font-size:13px;" value="${row.specs}" oninput="syncItemRow(${i},'specs',this.value)" placeholder="Specifications"></td>
-      <td style="padding:5px 8px;"><input class="form-input" style="min-width:80px;padding:7px 10px;font-size:13px;" value="${row.unit}" oninput="syncItemRow(${i},'unit',this.value)" placeholder="e.g. pcs"></td>
-      <td style="padding:5px 8px;"><input class="form-input" style="min-width:80px;padding:7px 10px;font-size:13px;" value="${row.qty}" oninput="syncItemRow(${i},'qty',this.value)" placeholder="0"></td>
-      <td style="padding:5px 8px;"><button class="btn btn-sm btn-red" onclick="removeItemRow(${i})">✕</button></td>
-    </tr>`).join('');
-}
-
 function submit(el) {
-  _rmItems = [{ desc: '', specs: '', unit: '', qty: '' }];
   el.innerHTML = `
     <div class="page-header">
       <div class="page-title">Submit Material Request</div>
@@ -2817,96 +2779,39 @@ function submit(el) {
           </select>
         </div>
         <div class="form-group full">
+          <label class="form-label">Materials Requested</label>
+          <textarea class="form-textarea" id="f_materials" placeholder="List each material with quantity and unit (e.g. Cement 50 bags, Steel rebar 20 tons, ...)"></textarea>
+        </div>
+        <div class="form-group full">
           <label class="form-label">Justification / Remarks</label>
           <textarea class="form-textarea" id="f_remarks" placeholder="Explain the need for these materials..."></textarea>
         </div>
         <div class="form-group full">
           <label class="form-label">Upload Request Document / Image</label>
-          <input type="file" class="form-input" id="f_attachment" accept=".pdf,image/*">
-          <div style="font-size:11px;color:var(--text3);margin-top:6px;">Allowed files: PDF, JPG, PNG, JPEG</div>
+          <input 
+            type="file" 
+            class="form-input" 
+            id="f_attachment"
+            accept=".pdf,image/*"
+          >
+          <div style="font-size:11px;color:var(--text3);margin-top:6px;">
+            Allowed files: PDF, JPG, PNG, JPEG
+          </div>
         </div>
       </div>
-
-      <!-- MATERIAL ITEMS TABLE -->
-      <div style="margin-top:28px;">
-        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:14px;color:var(--text);">Material Items</div>
-        <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);">
-          <table style="width:100%;border-collapse:collapse;">
-            <thead>
-              <tr style="background:var(--surface2);">
-                <th style="padding:10px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-weight:500;border-bottom:1px solid var(--border);">#</th>
-                <th style="padding:10px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-weight:500;border-bottom:1px solid var(--border);">Item Description</th>
-                <th style="padding:10px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-weight:500;border-bottom:1px solid var(--border);">Specs</th>
-                <th style="padding:10px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-weight:500;border-bottom:1px solid var(--border);">Unit</th>
-                <th style="padding:10px 12px;text-align:left;font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-weight:500;border-bottom:1px solid var(--border);">Quantity</th>
-                <th style="padding:10px 12px;border-bottom:1px solid var(--border);"></th>
-              </tr>
-            </thead>
-            <tbody id="itemsTableBody"></tbody>
-          </table>
-        </div>
-        <button class="btn btn-blue" style="margin-top:10px;" onclick="addItemRow()">➕ Add Item</button>
-      </div>
-
-      <!-- SIGNATURE SECTIONS -->
-      <div style="margin-top:36px;border-top:2px solid var(--border);padding-top:28px;">
-        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:20px;color:var(--text);">Authorisation &amp; Signatures</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;">
-
-          <!-- Requested By -->
-          <div style="border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;background:var(--surface);">
-            <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">Requested By</div>
-            <div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Project Manager Name</div>
-            <input class="form-input" id="f_req_name" placeholder="Project Manager Name" style="margin-bottom:12px;padding:7px 10px;font-size:13px;">
-            <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Signature:</div>
-            <div style="border-top:1px solid var(--border);margin-top:6px;height:40px;"></div>
-          </div>
-
-          <!-- Checked By -->
-          <div style="border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;background:var(--surface);">
-            <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">Checked By</div>
-            <div style="font-size:11px;color:var(--text2);margin-bottom:6px;">Resource Management Name</div>
-            <input class="form-input" id="f_chk_name" placeholder="Resource Management Name" style="margin-bottom:12px;padding:7px 10px;font-size:13px;">
-            <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Signature:</div>
-            <div style="border-top:1px solid var(--border);margin-top:6px;height:40px;"></div>
-          </div>
-
-          <!-- Approval: Director of Property Management -->
-          <div style="border:1.5px solid var(--accent);border-radius:var(--radius);padding:18px 20px;background:rgba(245,158,11,0.04);">
-            <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--accent);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">Approval — Part Checked</div>
-            <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:2px;">Abiy Girma</div>
-            <div style="font-size:11px;color:var(--text2);margin-bottom:12px;">Director of Property Management</div>
-            <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Approval Signature:</div>
-            <div style="border-top:1px solid var(--accent);margin-top:6px;height:40px;"></div>
-          </div>
-
-          <!-- Approval: Chief of Procurement -->
-          <div style="border:1.5px solid var(--accent3);border-radius:var(--radius);padding:18px 20px;background:rgba(16,185,129,0.04);">
-            <div style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--accent3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">Approval Signature</div>
-            <div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:2px;">Kalkidan Teshoma</div>
-            <div style="font-size:11px;color:var(--text2);margin-bottom:12px;">Chief of Procurement and Property Management Officer</div>
-            <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Approval Signature:</div>
-            <div style="border-top:1px solid var(--accent3);margin-top:6px;height:40px;"></div>
-          </div>
-
-        </div>
-      </div>
-
       <div class="form-actions">
         <button class="btn btn-accent" onclick="submitLetter()">📤 Submit Request Letter</button>
         <button class="btn btn-outline" onclick="clearForm()">Clear</button>
       </div>
     </div>`;
-  renderItemsTable();
 }
 
 function clearForm() {
-  [&apos;f_project&apos;,&apos;f_code&apos;,&apos;f_site&apos;,&apos;f_remarks&apos;,&apos;f_req_name&apos;,&apos;f_chk_name&apos;].forEach(id => {
+  [&apos;f_project&apos;,&apos;f_code&apos;,&apos;f_site&apos;,&apos;f_materials&apos;,&apos;f_remarks&apos;].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.value = &apos;&apos;;
   });
-  _rmItems = [{ desc: &apos;&apos;, specs: &apos;&apos;, unit: &apos;&apos;, qty: &apos;&apos; }];
-  renderItemsTable();
+
   const attachment = document.getElementById(&apos;f_attachment&apos;);
   if (attachment) attachment.value = &apos;&apos;;
 }
@@ -2915,48 +2820,58 @@ function submitLetter() {
   const project = document.getElementById(&apos;f_project&apos;).value.trim();
   const code = document.getElementById(&apos;f_code&apos;).value.trim();
   const site = document.getElementById(&apos;f_site&apos;).value.trim();
+  const materials = document.getElementById(&apos;f_materials&apos;).value.trim();
   const remarks = document.getElementById(&apos;f_remarks&apos;).value.trim();
   const urgency = document.getElementById(&apos;f_urgency&apos;).value;
-  const reqName = (document.getElementById(&apos;f_req_name&apos;) || {}).value || &apos;&apos;;
-  const chkName = (document.getElementById(&apos;f_chk_name&apos;) || {}).value || &apos;&apos;;
-
-  // collect items from _rmItems
-  const items = _rmItems.filter(r => r.desc.trim());
-  const materials = items.map(r => r.desc + (r.specs ? &apos; [&apos;+r.specs+&apos;]&apos; : &apos;&apos;) + &apos; — &apos; + r.qty + &apos; &apos; + r.unit).join(&apos;\n&apos;);
 
   const fileInput = document.getElementById(&apos;f_attachment&apos;);
   const file = fileInput.files[0];
-  if (!project || !items.length || !site) { toast(&apos;Please fill in Project Name, Site, and at least one material item.&apos;, &apos;error&apos;); return; }
+  if (!project || !materials || !site) { toast(&apos;Please fill in required fields.&apos;, &apos;error&apos;); return; }
 
   const letter = {
     id: genId(), project, code, site, materials, remarks, urgency,
-    items: JSON.parse(JSON.stringify(_rmItems)),
-    reqName, chkName,
-    attachment: null, attachmentName: null, attachmentType: null,
+
+    attachment: null,
+    attachmentName: null,
+    attachmentType: null,
+
     submittedBy: currentUser.id, submittedByName: currentUser.name,
     date: today(), status: &apos;active&apos;, stage: &apos;submitted&apos;,
     history: [{ stage: &apos;submitted&apos;, by: currentUser.name, role: ROLES[currentUser.role], at: now(), note: &apos;Letter submitted&apos;, action: &apos;submitted&apos; }]
   };
   if (file) {
     const reader = new FileReader();
+
     reader.onload = function(e) {
       letter.attachment = e.target.result;
       letter.attachmentName = file.name;
       letter.attachmentType = file.type;
+
       LETTERS.push(letter);
+
       addNotif(&apos;rm&apos;, `New MRL ${letter.id} submitted by ${currentUser.name} with attachment: ${file.name}`, letter.id);
       showBrowserNotif(&apos;📎 File Uploaded — EDR Resource Management&apos;, `${currentUser.name} uploaded "${file.name}" with letter ${letter.id}`);
+
       saveData();
+
       toast(`Letter ${letter.id} submitted successfully!`, &apos;success&apos;);
-      clearForm(); buildUI();
+
+      clearForm();
+      buildUI();
     };
+
     reader.readAsDataURL(file);
   } else {
     LETTERS.push(letter);
+
     addNotif(&apos;rm&apos;, `New MRL ${letter.id} submitted by ${currentUser.name}`, letter.id);
+
     saveData();
+
     toast(`Letter ${letter.id} submitted successfully!`, &apos;success&apos;);
-    clearForm(); buildUI();
+
+    clearForm();
+    buildUI();
   }
 }
 
@@ -3176,56 +3091,8 @@ function viewLetter(id) {
     <div class="detail-row"><div class="detail-key">Project Code</div><div class="detail-val">${l.code||&apos;—&apos;}</div></div>
     <div class="detail-row"><div class="detail-key">Project Site</div><div class="detail-val">${l.site}</div></div>
     <div class="detail-row"><div class="detail-key">Urgency</div><div class="detail-val" style="color:${l.urgency===&apos;Critical&apos;?&apos;var(--danger)&apos;:l.urgency===&apos;Urgent&apos;?&apos;var(--warning)&apos;:&apos;var(--text)&apos;}">${l.urgency}</div></div>
+    <div class="detail-row"><div class="detail-key">Materials</div><div class="detail-val" style="white-space:pre-wrap">${l.materials}</div></div>
     <div class="detail-row"><div class="detail-key">Remarks</div><div class="detail-val">${l.remarks||&apos;—&apos;}</div></div>
-    ${l.items && l.items.length ? `
-    <div style="margin:18px 0 8px;font-family:&apos;Syne&apos;,sans-serif;font-weight:700;font-size:14px;">Material Items</div>
-    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;">
-      <table style="width:100%;border-collapse:collapse;">
-        <thead><tr style="background:var(--surface2);">
-          <th style="padding:9px 12px;text-align:left;font-family:&apos;DM Mono&apos;,monospace;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;border-bottom:1px solid var(--border);">#</th>
-          <th style="padding:9px 12px;text-align:left;font-family:&apos;DM Mono&apos;,monospace;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;border-bottom:1px solid var(--border);">Item Description</th>
-          <th style="padding:9px 12px;text-align:left;font-family:&apos;DM Mono&apos;,monospace;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;border-bottom:1px solid var(--border);">Specs</th>
-          <th style="padding:9px 12px;text-align:left;font-family:&apos;DM Mono&apos;,monospace;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;border-bottom:1px solid var(--border);">Unit</th>
-          <th style="padding:9px 12px;text-align:left;font-family:&apos;DM Mono&apos;,monospace;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;border-bottom:1px solid var(--border);">Quantity</th>
-        </tr></thead>
-        <tbody>
-          ${l.items.map((row,i) => `<tr>
-            <td style="padding:9px 12px;font-size:12px;color:var(--text3);font-family:&apos;DM Mono&apos;,monospace;">${i+1}</td>
-            <td style="padding:9px 12px;font-size:13px;">${row.desc||&apos;—&apos;}</td>
-            <td style="padding:9px 12px;font-size:13px;color:var(--text2);">${row.specs||&apos;—&apos;}</td>
-            <td style="padding:9px 12px;font-size:13px;">${row.unit||&apos;—&apos;}</td>
-            <td style="padding:9px 12px;font-size:13px;font-weight:600;">${row.qty||&apos;—&apos;}</td>
-          </tr>`).join(&apos;&apos;)}
-        </tbody>
-      </table>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:18px;margin-bottom:6px;">
-      <div style="border:1px solid var(--border);border-radius:8px;padding:14px 16px;background:var(--surface);">
-        <div style="font-family:&apos;DM Mono&apos;,monospace;font-size:9px;font-weight:700;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">Requested By</div>
-        <div style="font-size:13px;font-weight:600;margin-bottom:4px;">${l.reqName||&apos;Project Manager&apos;}</div>
-        <div style="font-size:11px;color:var(--text2);">Project Manager</div>
-        <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:6px;height:32px;"></div>
-      </div>
-      <div style="border:1px solid var(--border);border-radius:8px;padding:14px 16px;background:var(--surface);">
-        <div style="font-family:&apos;DM Mono&apos;,monospace;font-size:9px;font-weight:700;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">Checked By</div>
-        <div style="font-size:13px;font-weight:600;margin-bottom:4px;">${l.chkName||&apos;Resource Manager&apos;}</div>
-        <div style="font-size:11px;color:var(--text2);">Resource Management</div>
-        <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:6px;height:32px;"></div>
-      </div>
-      <div style="border:1.5px solid var(--accent);border-radius:8px;padding:14px 16px;background:rgba(245,158,11,0.04);">
-        <div style="font-family:&apos;DM Mono&apos;,monospace;font-size:9px;font-weight:700;color:var(--accent);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">Approval — Part Checked</div>
-        <div style="font-size:13px;font-weight:700;margin-bottom:2px;">Abiy Girma</div>
-        <div style="font-size:11px;color:var(--text2);">Director of Property Management</div>
-        <div style="border-top:1px solid var(--accent);margin-top:10px;padding-top:6px;height:32px;"></div>
-      </div>
-      <div style="border:1.5px solid var(--accent3);border-radius:8px;padding:14px 16px;background:rgba(16,185,129,0.04);">
-        <div style="font-family:&apos;DM Mono&apos;,monospace;font-size:9px;font-weight:700;color:var(--accent3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">Approval Signature</div>
-        <div style="font-size:13px;font-weight:700;margin-bottom:2px;">Kalkidan Teshoma</div>
-        <div style="font-size:11px;color:var(--text2);">Chief of Procurement &amp; Property Management Officer</div>
-        <div style="border-top:1px solid var(--accent3);margin-top:10px;padding-top:6px;height:32px;"></div>
-      </div>
-    </div>
-    ` : `<div class="detail-row"><div class="detail-key">Materials</div><div class="detail-val" style="white-space:pre-wrap">${l.materials}</div></div>`}
     <div class="detail-row">
       <div class="detail-key">Attachment</div>
       <div class="detail-val">
